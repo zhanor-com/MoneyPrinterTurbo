@@ -1,12 +1,14 @@
-import os
-import platform
-import sys
-from uuid import uuid4
+# 系统标准库导入
+import os  # 操作系统接口
+import platform  # 获取平台信息
+import sys  # 系统相关功能
+from uuid import uuid4  # 生成唯一ID
 
-import streamlit as st
-from loguru import logger
+# 第三方库导入
+import streamlit as st  # Web应用框架
+from loguru import logger  # 日志记录
 
-# Add the root directory of the project to the system path to allow importing modules from the project
+# 将项目根目录添加到系统路径，以便导入项目模块
 root_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 if root_dir not in sys.path:
     sys.path.append(root_dir)
@@ -26,21 +28,22 @@ from app.services import llm, voice
 from app.services import task as tm
 from app.utils import utils
 
+# 配置Streamlit页面设置
 st.set_page_config(
-    page_title="MoneyPrinterTurbo",
-    page_icon="🤖",
-    layout="wide",
-    initial_sidebar_state="auto",
+    page_title="MoneyPrinterTurbo",  # 页面标题
+    page_icon="🤖",  # 页面图标
+    layout="wide",  # 宽屏布局
+    initial_sidebar_state="auto",  # 侧边栏初始状态
     menu_items={
-        "Report a bug": "https://github.com/harry0703/MoneyPrinterTurbo/issues",
-        "About": "# MoneyPrinterTurbo\nSimply provide a topic or keyword for a video, and it will "
-        "automatically generate the video copy, video materials, video subtitles, "
-        "and video background music before synthesizing a high-definition short "
-        "video.\n\nhttps://github.com/harry0703/MoneyPrinterTurbo",
+        "Report a bug": "https://github.com/harry0703/MoneyPrinterTurbo/issues",  # 报告问题链接
+        "About": "# MoneyPrinterTurbo\n只需提供视频主题或关键词，系统将自动生成"
+        "视频文案、视频素材、视频字幕和背景音乐，最终合成高清短视频。\n\n"
+        "https://github.com/harry0703/MoneyPrinterTurbo",  # 关于信息
     },
 )
 
 
+# Streamlit样式设置 - 调整标题内边距
 streamlit_style = """
 <style>
 h1 {
@@ -50,51 +53,60 @@ h1 {
 """
 st.markdown(streamlit_style, unsafe_allow_html=True)
 
-# 定义资源目录
-font_dir = os.path.join(root_dir, "resource", "fonts")
-song_dir = os.path.join(root_dir, "resource", "songs")
-i18n_dir = os.path.join(root_dir, "webui", "i18n")
-config_file = os.path.join(root_dir, "webui", ".streamlit", "webui.toml")
-system_locale = utils.get_system_locale()
+# 定义资源目录路径
+font_dir = os.path.join(root_dir, "resource", "fonts")  # 字体文件目录
+song_dir = os.path.join(root_dir, "resource", "songs")  # 背景音乐目录
+i18n_dir = os.path.join(root_dir, "webui", "i18n")  # 国际化语言文件目录
+config_file = os.path.join(root_dir, "webui", ".streamlit", "webui.toml")  # 配置文件路径
+system_locale = utils.get_system_locale()  # 获取系统默认语言设置
 
-
+# 初始化会话状态变量
 if "video_subject" not in st.session_state:
-    st.session_state["video_subject"] = ""
+    st.session_state["video_subject"] = ""  # 视频主题
 if "video_script" not in st.session_state:
-    st.session_state["video_script"] = ""
+    st.session_state["video_script"] = ""  # 视频脚本
 if "video_terms" not in st.session_state:
-    st.session_state["video_terms"] = ""
+    st.session_state["video_terms"] = ""  # 视频关键词
 if "ui_language" not in st.session_state:
-    st.session_state["ui_language"] = config.ui.get("language", system_locale)
+    st.session_state["ui_language"] = config.ui.get("language", system_locale)  # 界面语言
 
-# 加载语言文件
+# 加载国际化语言文件
 locales = utils.load_locales(i18n_dir)
 
 # 创建一个顶部栏，包含标题和语言选择
+# 使用Streamlit的columns布局，3:1的比例分配空间
 title_col, lang_col = st.columns([3, 1])
 
+# 在左侧标题栏显示应用名称和版本号
 with title_col:
     st.title(f"MoneyPrinterTurbo v{config.project_version}")
 
+# 在右侧语言栏显示语言选择下拉框
 with lang_col:
+    # 准备语言选项列表
     display_languages = []
     selected_index = 0
     for i, code in enumerate(locales.keys()):
+        # 格式化为"代码 - 语言名称"的显示格式
         display_languages.append(f"{code} - {locales[code].get('Language')}")
+        # 设置当前选中语言的索引
         if code == st.session_state.get("ui_language", ""):
             selected_index = i
 
+    # 创建语言选择下拉框
     selected_language = st.selectbox(
-        "Language / 语言",
-        options=display_languages,
-        index=selected_index,
-        key="top_language_selector",
-        label_visibility="collapsed",
+        "Language / 语言",  # 标签显示双语
+        options=display_languages,  # 可选项
+        index=selected_index,  # 默认选中项
+        key="top_language_selector",  # 组件唯一标识
+        label_visibility="collapsed",  # 隐藏标签
     )
+    
+    # 当语言选择发生变化时更新会话状态和配置
     if selected_language:
-        code = selected_language.split(" - ")[0].strip()
-        st.session_state["ui_language"] = code
-        config.ui["language"] = code
+        code = selected_language.split(" - ")[0].strip()  # 提取语言代码
+        st.session_state["ui_language"] = code  # 更新会话状态
+        config.ui["language"] = code  # 更新配置
 
 support_locales = [
     "zh-CN",
